@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import GrammarInput from "./components/GrammarInput";
 import TableView from "./components/TableView";
 import Button from "./components/Button";
 import TreeView from "./components/TreeView";
+import { tokenize } from "./utils";
+// import GrammarExamples from "./components/GrammarExamples";
 
 export interface Production {
-  rhs: string;
   lhs: string;
+  rhs: string[];
   id: string;
 }
 
@@ -19,7 +21,7 @@ export interface Node {
 
 export interface Snapshot {
   stack: Node[];
-  buffer: string;
+  buffer: string[];
   action: action;
   production?: Production;
 }
@@ -34,33 +36,35 @@ function App() {
       id: crypto.randomUUID(),
     },
   ]);
-  const [buffer, setBuffer] = useState("");
+  const [buffer, setBuffer] = useState<string[]>([]);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [action, setAction] = useState<action>();
   const [productions, setProductions] = useState<Production[]>([]);
   const [matchP, setMatchP] = useState<number>(0);
+  const [input, setInput] = useState("");
 
   const initializeParser = (pr: Production[], inp: string) => {
-    console.log(pr);
+    // console.log(pr);
+    setInput(inp);
     const st = [{ name: "$", id: crypto.randomUUID() }];
-    setBuffer(inp + "$");
+    setBuffer([...tokenize(inp), "$"]);
     setAction("SHIFT");
     setStack(st);
     setProductions(pr);
     setSnapshots([
       {
-        buffer: inp + "$",
+        buffer: [...tokenize(inp), "$"],
         stack: st,
         action: "SHIFT",
       },
     ]);
   };
 
-  useEffect(() => {
-    console.log("buffer", buffer);
-    console.log("stack", stack);
-    console.log("action", action);
-  }, [buffer, stack, action]);
+  // useEffect(() => {
+  //   console.log("buffer", buffer);
+  //   console.log("stack", stack);
+  //   console.log("action", action);
+  // }, [buffer, stack, action]);
 
   const stepParser = () => {
     let newBuffer = buffer;
@@ -116,23 +120,24 @@ function App() {
     takeSnapshot(newStack, newBuffer, next.type, next.index);
   };
 
-  const computeNextAction = (stack: Node[], buffer: string): NextStep => {
+  const computeNextAction = (stack: Node[], buffer: string[]): NextStep => {
     let nextAction: action | undefined;
     let pIndex;
-    if (stack.length === 2 && buffer === "$") {
+    if (stack.length === 2 && buffer[0] === "$") {
       nextAction = stack[1].name === productions[0]?.lhs ? "ACCEPT" : "REJECT";
       console.log("r 1");
     }
     for (const [index, p] of productions.entries()) {
       const stackCopy = [...stack];
       console.log("stackCopy = " + stackCopy);
+      const rhsStr = p.rhs.join("");
       const stackToCheck = stackCopy
         .slice(-p.rhs.length)
         .map((p) => p.name)
         .join("");
       console.log("stack to check = " + stackToCheck);
-      console.log("RHS " + p.rhs);
-      if (p.rhs == stackToCheck) {
+      console.log("RHS " + rhsStr);
+      if (rhsStr == stackToCheck) {
         setMatchP(index);
         console.log("matchP = " + matchP + " " + p);
         nextAction = "REDUCE";
@@ -149,11 +154,11 @@ function App() {
 
   const takeSnapshot = (
     stack: Node[],
-    buffer: string,
+    buffer: string[],
     action: action,
     pIndex?: number,
   ) => {
-    console.log("pindex" + pIndex);
+    console.log("pindex = " + pIndex);
     setSnapshots((prev) => [
       ...prev,
       {
@@ -181,7 +186,11 @@ function App() {
         </header>
 
         <div className="space-y-6">
-          <GrammarInput onSubmit={initializeParser} />
+          <GrammarInput
+            rInput={input}
+            rProductions={productions}
+            onSubmit={initializeParser}
+          />
 
           <div className="flex items-center gap-4 border-t border-zinc-900 pt-6">
             <Button
@@ -209,6 +218,7 @@ function App() {
           </div>
         </div>
       </div>
+      {/*<GrammarExamples onLoadExample={initializeParser} />*/}
     </div>
   );
 }

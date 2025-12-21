@@ -1,34 +1,47 @@
 import { useState } from "react";
 import type { Production } from "../App";
 import Button from "./Button";
-import { parseProductions } from "../utils";
+import { parseProductions, tokenizeGrammar } from "../utils";
 
 const GrammarInput = ({
+  rProductions,
+  rInput = "",
   onSubmit,
 }: {
   onSubmit: (productions: Production[], input: string) => void;
+  rProductions?: Production[];
+  rInput?: string;
 }) => {
+  console.log("rInput = ", rInput);
+  console.log("rProductions = ", rProductions);
   const [inputMode, setInputMode] = useState<"str" | "obj">("obj");
-  const [productions, setProductions] = useState<Production[]>([
-    {
-      id: crypto.randomUUID(),
-      lhs: "S",
-      rhs: "",
-    },
-  ]);
-  const [input, setInput] = useState("");
+  const [productions, setProductions] = useState(() =>
+    rProductions && rProductions.length > 0
+      ? rProductions
+      : [{ id: crypto.randomUUID(), lhs: "S", rhs: [] }],
+  );
+
+  const [input, setInput] = useState(rInput);
+
   const [stringPr, setStringPr] = useState("");
 
   const handleChange = (id: string, field: "lhs" | "rhs", value: string) => {
-    value = field === "lhs" ? value[0].toUpperCase() : value;
     setProductions((prev) =>
-      prev.map((prod) => (prod.id === id ? { ...prod, [field]: value } : prod)),
+      prev.map((prod) => {
+        if (prod.id !== id) return prod;
+        if (field === "lhs") {
+          return { ...prod, lhs: value[0].toUpperCase() };
+        } else {
+          return { ...prod, rhs: tokenizeGrammar(value) };
+        }
+      }),
     );
   };
+
   const handleAddRow = () => {
     setProductions((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), lhs: "", rhs: "" },
+      { id: crypto.randomUUID(), lhs: "", rhs: [] },
     ]);
   };
   const handleRemoveRow = (id: string) => {
@@ -39,15 +52,16 @@ const GrammarInput = ({
             {
               id: crypto.randomUUID(),
               lhs: "S",
-              rhs: "",
+              rhs: [],
             },
           ],
     );
   };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(productions);
     const validProductions = productions.filter(
-      (p) => p.lhs.trim() != "" && p.rhs.trim() != "",
+      (p) => p.lhs.trim() != "" && p.rhs.join("").trim() != "",
     );
     console.log("vald " + validProductions);
     onSubmit(validProductions, input);
@@ -57,22 +71,22 @@ const GrammarInput = ({
     {
       id: crypto.randomUUID(),
       lhs: "S",
-      rhs: "S+S",
+      rhs: ["S", "+", "S"],
     },
     {
       id: crypto.randomUUID(),
       lhs: "S",
-      rhs: "S*S",
+      rhs: ["S", "*", "S"],
     },
     {
       id: crypto.randomUUID(),
       lhs: "S",
-      rhs: "(S)",
+      rhs: ["(", "S", ")"],
     },
     {
       id: crypto.randomUUID(),
       lhs: "S",
-      rhs: "b",
+      rhs: ["id"],
     },
   ];
   const exInp = "b+(b*b)";
@@ -153,7 +167,7 @@ const GrammarInput = ({
                   <div className="flex-1">
                     <input
                       type="text"
-                      value={pr.rhs}
+                      value={pr.rhs.join("")}
                       onChange={(v) =>
                         handleChange(pr.id, "rhs", v.target.value)
                       }

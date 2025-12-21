@@ -47,7 +47,7 @@ const TableView = ({ parserHistory }: { parserHistory: Snapshot[] }) => {
                   {snapshot.stack.reduce((acc, v) => acc + v.name, "")}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2 text-sm text-zinc-400 font-mono text-right">
-                  {snapshot.buffer}
+                  {snapshot.buffer.join("")}
                 </td>
                 <td className="whitespace-nowrap px-4 py-2 text-sm">
                   <span
