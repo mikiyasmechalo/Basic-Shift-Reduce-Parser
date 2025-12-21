@@ -26,6 +26,7 @@ export interface Snapshot {
 
 export type action = "SHIFT" | "REDUCE" | "ACCEPT" | "REJECT" | "---";
 type NextStep = { type: action; index?: number };
+
 function App() {
   const [stack, setStack] = useState<Node[]>([
     {
@@ -34,7 +35,6 @@ function App() {
     },
   ]);
   const [buffer, setBuffer] = useState("");
-  // const [input, setInput] = useState("");
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [action, setAction] = useState<action>();
   const [productions, setProductions] = useState<Production[]>([]);
@@ -104,7 +104,12 @@ function App() {
         break;
     }
     const next = computeNextAction(newStack, newBuffer);
-
+    if (next.type === "ACCEPT" && newStack.length > 0) {
+      const top = newStack[newStack.length - 1];
+      const updatedTop: Node = { ...top, attributes: "root" };
+      newStack = [...newStack.slice(0, -1), updatedTop];
+      setStack(newStack);
+    }
     setAction(next.type);
     if (next.index !== undefined) setMatchP(next.index);
 
@@ -164,14 +169,45 @@ function App() {
   };
 
   return (
-    <div className="m-10">
-      <GrammarInput onSubmit={initializeParser} />
-      <Button className="mt-2" variant="danger" onClick={stepParser}>
-        Step Parser
-      </Button>
-      <div className="flex lg:flex-row flex-col gap-3 mt-8">
-        <TableView parserHistory={snapshots} />
-        <TreeView stack={stack} accepted={action === "ACCEPT"} />
+    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans selection:bg-zinc-800 selection:text-white">
+      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">
+            Parser Visualization
+          </h1>
+          <p className="text-zinc-500 mt-2">
+            LL/LR parsing step-by-step debugger
+          </p>
+        </header>
+
+        <div className="space-y-6">
+          <GrammarInput onSubmit={initializeParser} />
+
+          <div className="flex items-center gap-4 border-t border-zinc-900 pt-6">
+            <Button
+              className="w-full sm:w-auto"
+              variant="primary"
+              onClick={stepParser}
+            >
+              Step Parser
+            </Button>
+            {action && (
+              <span className="text-sm font-mono px-3 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                Next Action:{" "}
+                <span className="text-zinc-200 font-bold">{action}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <div className="h-full min-h-125">
+              <TableView parserHistory={snapshots} />
+            </div>
+            <div className="h-full min-h-125">
+              <TreeView stack={stack} accepted={action === "ACCEPT"} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
