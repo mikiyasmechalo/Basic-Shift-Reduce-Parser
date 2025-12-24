@@ -26,7 +26,7 @@ export function tokenizeGrammar(rhs: string): string[] {
     }
 
     // operators and parentheses
-    if ("+*()=<>".includes(c)) {
+    if ("+*()=<>,".includes(c)) {
       tokens.push(c);
       i++;
       continue;
@@ -41,12 +41,6 @@ export function tokenizeGrammar(rhs: string): string[] {
 
     throw new Error(`Unexpected character in grammar: ${c}`);
   }
-  console.log(
-    "Final Tokens from Grammar Tokenizer for input: ",
-    rhs,
-    "is: ",
-    tokens,
-  );
 
   return tokens;
 }
@@ -77,7 +71,7 @@ export function tokenize(input: string): string[] {
     }
 
     // operators / parentheses
-    if ("+*()=<>".includes(c)) {
+    if ("+*()=<>,".includes(c)) {
       tokens.push(c);
       i++;
       continue;
@@ -85,7 +79,6 @@ export function tokenize(input: string): string[] {
 
     throw new Error(`Unexpected character: ${c}`);
   }
-  console.log("Final Tokens from Tokenizer: ", tokens);
 
   return tokens;
 }

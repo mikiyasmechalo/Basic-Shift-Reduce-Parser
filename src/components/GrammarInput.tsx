@@ -12,8 +12,6 @@ const GrammarInput = ({
   rProductions?: Production[];
   rInput?: string;
 }) => {
-  console.log("rInput = ", rInput);
-  console.log("rProductions = ", rProductions);
   const [inputMode, setInputMode] = useState<"str" | "obj">("obj");
   const [productions, setProductions] = useState(() =>
     rProductions && rProductions.length > 0
@@ -32,7 +30,7 @@ const GrammarInput = ({
         if (field === "lhs") {
           return { ...prod, lhs: value[0].toUpperCase() };
         } else {
-          return { ...prod, rhs: tokenizeGrammar(value) };
+          return { ...prod, rhs: [value] };
         }
       }),
     );
@@ -59,11 +57,12 @@ const GrammarInput = ({
   };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(productions);
-    const validProductions = productions.filter(
-      (p) => p.lhs.trim() != "" && p.rhs.join("").trim() != "",
-    );
-    console.log("vald " + validProductions);
+    const validProductions = productions
+      .filter((p) => p.lhs.trim() != "" && p.rhs.join("").trim() != "")
+      .map((p) => ({
+        ...p,
+        rhs: tokenizeGrammar(p.rhs.join("")), // parse here
+      }));
     onSubmit(validProductions, input);
   };
 

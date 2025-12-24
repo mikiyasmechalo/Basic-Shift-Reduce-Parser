@@ -4,7 +4,6 @@ import TableView from "./components/TableView";
 import Button from "./components/Button";
 import TreeView from "./components/TreeView";
 import { tokenize } from "./utils";
-// import GrammarExamples from "./components/GrammarExamples";
 
 export interface Production {
   lhs: string;
@@ -44,7 +43,6 @@ function App() {
   const [input, setInput] = useState("");
 
   const initializeParser = (pr: Production[], inp: string) => {
-    // console.log(pr);
     setInput(inp);
     const st = [{ name: "$", id: crypto.randomUUID() }];
     setBuffer([...tokenize(inp), "$"]);
@@ -60,12 +58,6 @@ function App() {
     ]);
   };
 
-  // useEffect(() => {
-  //   console.log("buffer", buffer);
-  //   console.log("stack", stack);
-  //   console.log("action", action);
-  // }, [buffer, stack, action]);
-
   const stepParser = () => {
     let newBuffer = buffer;
     let newStack = [...stack];
@@ -75,9 +67,7 @@ function App() {
         return;
       case "REDUCE":
         {
-          console.log("reducing");
           const p = productions[matchP];
-          console.log("matchP 2 = " + matchP + " " + p);
 
           const children = stack.slice(-p.rhs.length);
           const newNode: Node = {
@@ -87,12 +77,10 @@ function App() {
             children: children,
           };
           newStack = [...stack.slice(0, -p.rhs.length), newNode];
-          console.log("new stack", newStack);
           setStack(newStack);
         }
         break;
       case "SHIFT": {
-        console.log("shifting");
         const newNode: Node = {
           name: buffer[0],
           id: crypto.randomUUID(),
@@ -125,21 +113,16 @@ function App() {
     let pIndex;
     if (stack.length === 2 && buffer[0] === "$") {
       nextAction = stack[1].name === productions[0]?.lhs ? "ACCEPT" : "REJECT";
-      console.log("r 1");
     }
     for (const [index, p] of productions.entries()) {
       const stackCopy = [...stack];
-      console.log("stackCopy = " + stackCopy);
       const rhsStr = p.rhs.join("");
       const stackToCheck = stackCopy
         .slice(-p.rhs.length)
         .map((p) => p.name)
         .join("");
-      console.log("stack to check = " + stackToCheck);
-      console.log("RHS " + rhsStr);
       if (rhsStr == stackToCheck) {
         setMatchP(index);
-        console.log("matchP = " + matchP + " " + p);
         nextAction = "REDUCE";
         pIndex = index;
       }
@@ -158,7 +141,6 @@ function App() {
     action: action,
     pIndex?: number,
   ) => {
-    console.log("pindex = " + pIndex);
     setSnapshots((prev) => [
       ...prev,
       {
