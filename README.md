@@ -1,73 +1,35 @@
-# React + TypeScript + Vite
+A simple React-based tool built to demonstrate the fundamental mechanics of **Bottom-Up Parsing**. This project serves as a visual aid for students learning about stack-based automata and context-free grammar reductions.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### 🛠 Reality Check: Current Limitations
 
-Currently, two official plugins are available:
+* **Greedy Matching**: The parser uses a simple "first-match" reduction strategy. It does not use a DFA-based state machine (like an SLR or LALR parser).
+* **String-Based Matching**: It checks the stack top against grammar rules using string concatenation rather than a pre-computed parsing table.
+* **Manual Conflict Resolution**: It cannot handle Shift-Reduce conflicts; it simply prioritizes reductions by default.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🚀 Core Functionality
 
-## React Compiler
+* **Linear Stack Manipulation**: Visualizes the `$`-indexed stack as it grows and shrinks.
+* **Fragmented Forest View**: Renders the stack not as a single tree, but as a "forest" of partially completed sub-trees that merge as reductions occur.
+* **Step-by-Step Debugging**: Provides a trace of every stack/buffer transition to help identify where a grammar might be failing (REJECT state).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🧩 The "Tree" Logic
 
-## Expanding the ESLint configuration
+The "Parse Tree" in this app is actually a collection of nested JSON objects generated on the fly:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Shift**: Creates a leaf node object: `{ label: 'token', children: [] }`.
+2. **Reduce**: Pops  objects from the stack array and wraps them in a new parent object: `{ label: 'LHS', children: [popped_nodes] }`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 📦 Quick Start
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. **Install**: `npm install`
+2. **Run**: `npm run dev`
+3. **Test**: Use the default grammar () to see how a string is consumed from right to left.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Future "Actual Sophistication"
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+* [ ] **Parse Table Generation**: Implement the actual  state sets and GOTO/ACTION tables.
+* [ ] **Lookahead Support**: Add  lookahead to handle more complex grammars.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**Would you like me to add a "Known Issues" section that explains why this parser might loop infinitely on certain recursive grammars?**
