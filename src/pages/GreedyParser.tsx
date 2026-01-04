@@ -4,29 +4,9 @@ import TableView from "../components/TableView";
 import Button from "../components/Button";
 import TreeView from "../components/TreeView";
 import { tokenize } from "../utils";
+import type { ActionType, Production, Snapshot, Node } from "../types/parser";
 
-export interface Production {
-  lhs: string;
-  rhs: string[];
-  id: string;
-}
-
-export interface Node {
-  name: string;
-  children?: Node[];
-  attributes?: string; // termial or non-t for styling
-  id: string;
-}
-
-export interface Snapshot {
-  stack: Node[];
-  buffer: string[];
-  action: action;
-  production?: Production;
-}
-
-export type action = "SHIFT" | "REDUCE" | "ACCEPT" | "REJECT" | "---";
-type NextStep = { type: action; index?: number };
+type NextStep = { type: ActionType; index?: number };
 
 function GreedyParser() {
   const [stack, setStack] = useState<Node[]>([
@@ -37,7 +17,7 @@ function GreedyParser() {
   ]);
   const [buffer, setBuffer] = useState<string[]>([]);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [action, setAction] = useState<action>();
+  const [action, setAction] = useState<ActionType>();
   const [productions, setProductions] = useState<Production[]>([]);
   const [matchP, setMatchP] = useState<number>(0);
   const [input, setInput] = useState("");
@@ -109,7 +89,7 @@ function GreedyParser() {
   };
 
   const computeNextAction = (stack: Node[], buffer: string[]): NextStep => {
-    let nextAction: action | undefined;
+    let nextAction: ActionType | undefined;
     let pIndex;
     if (stack.length === 2 && buffer[0] === "$") {
       nextAction = stack[1].name === productions[0]?.lhs ? "ACCEPT" : "REJECT";
@@ -138,7 +118,7 @@ function GreedyParser() {
   const takeSnapshot = (
     stack: Node[],
     buffer: string[],
-    action: action,
+    action: ActionType,
     pIndex?: number,
   ) => {
     setSnapshots((prev) => [

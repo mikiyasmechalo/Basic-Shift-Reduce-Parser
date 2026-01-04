@@ -1,5 +1,5 @@
 import Tree, { type RawNodeDatum } from "react-d3-tree";
-import type { Node } from "../pages/BacktrackingParser";
+import type { Node } from "../types/parser";
 import { useRef, useEffect, useState } from "react";
 
 function normalize(node: Node | undefined): RawNodeDatum | null {

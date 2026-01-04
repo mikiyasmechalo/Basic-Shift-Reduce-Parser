@@ -1,7 +1,11 @@
-import type { Snapshot } from "../pages/BacktrackingParser";
+import type { LRSnapshot, Snapshot } from "../types/parser";
 import { productionToString } from "../utils";
 
-const TableView = ({ parserHistory }: { parserHistory: Snapshot[] }) => {
+const TableView = ({
+  parserHistory,
+}: {
+  parserHistory: Snapshot[] | LRSnapshot[];
+}) => {
   return (
     <div className="flex flex-col h-full bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden shadow-sm">
       <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900">

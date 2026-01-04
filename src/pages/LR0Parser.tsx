@@ -4,47 +4,15 @@ import TableView from "../components/TableView";
 import Button from "../components/Button";
 import TreeView from "../components/TreeView";
 import { tokenize } from "../utils";
-
-export interface Production {
-  lhs: string;
-  rhs: string[];
-  id: string;
-}
-
-export interface Node {
-  name: string;
-  children?: Node[];
-  attributes?: "t" | "nt" | "root";
-  id: string;
-}
-
-interface LRItem {
-  lhs: string;
-  rhs: string[];
-  dot: number;
-  productionId: string;
-}
-
-interface LRState {
-  id: number;
-  items: LRItem[];
-  transitions: Record<string, number>;
-}
-
-type LRAction =
-  | { type: "SHIFT"; to: number }
-  | { type: "REDUCE"; production: Production }
-  | { type: "ACCEPT" }
-  | { type: "ERROR" };
-
-type ParsingTable = Record<number, Record<string, LRAction[]>>;
-
-interface Snapshot {
-  stack: { name: string; id: string | number }[];
-  buffer: string[];
-  action: string;
-  note: string;
-}
+import type {
+  Production,
+  Node,
+  LRItem,
+  LRState,
+  LRSnapshot,
+  LRAction,
+  ParsingTable,
+} from "../types/parser";
 
 const itemToString = (item: LRItem): string => {
   const before = item.rhs.slice(0, item.dot).join(" ");
@@ -71,7 +39,7 @@ function LR0Parser() {
   const [symbolStack, setSymbolStack] = useState<string[]>(["$"]);
   const [treeStack, setTreeStack] = useState<Node[]>([]);
   const [buffer, setBuffer] = useState<string[]>([]);
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [snapshots, setSnapshots] = useState<LRSnapshot[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [currentAction, setCurrentAction] = useState<string>("");
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Button from "./Button";
-import type { Production } from "../pages/BacktrackingParser";
+import type { Production } from "../types/parser";
 
 interface Example {
   name: string;

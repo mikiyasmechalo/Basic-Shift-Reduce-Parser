@@ -4,52 +4,20 @@ import TableView from "../components/TableView";
 import Button from "../components/Button";
 import TreeView from "../components/TreeView";
 import { tokenize } from "../utils";
-
-export interface Production {
-  lhs: string;
-  rhs: string[];
-  id: string;
-}
-
-export interface Node {
-  name: string;
-  children?: Node[];
-  attributes?: string;
-  id: string;
-}
-
-export type action =
-  | "SHIFT"
-  | "REDUCE"
-  | "ACCEPT"
-  | "REJECT"
-  | "BACKTRACK"
-  | "---";
-
-export interface Snapshot {
-  stack: Node[];
-  buffer: string[];
-  action: action;
-  production?: Production;
-  note?: string;
-}
-
-interface BacktrackFrame {
-  stack: Node[];
-  buffer: string[];
-  pendingMoves: Move[];
-}
-
-interface Move {
-  type: "SHIFT" | "REDUCE" | "ACCEPT";
-  production?: Production;
-}
+import type {
+  ActionType,
+  BacktrackMove,
+  Production,
+  Snapshot,
+  Node,
+  BacktrackFrame,
+} from "../types/parser";
 
 function BacktrackingParser() {
   const [stack, setStack] = useState<Node[]>([]);
   const [buffer, setBuffer] = useState<string[]>([]);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
-  const [currentAction, setCurrentAction] = useState<action>("---");
+  const [currentAction, setCurrentAction] = useState<ActionType>("---");
   const [productions, setProductions] = useState<Production[]>([]);
   const [backtrackStack, setBacktrackStack] = useState<BacktrackFrame[]>([]);
   const [input, setInput] = useState("");
@@ -81,8 +49,8 @@ function BacktrackingParser() {
   const getPossibleMoves = (
     currentStack: Node[],
     currentBuffer: string[],
-  ): Move[] => {
-    const moves: Move[] = [];
+  ): BacktrackMove[] => {
+    const moves: BacktrackMove[] = [];
     const bufferTop = currentBuffer[0];
 
     if (
@@ -98,7 +66,7 @@ function BacktrackingParser() {
       moves.push({ type: "SHIFT" });
     }
 
-    const reductions: Move[] = [];
+    const reductions: BacktrackMove[] = [];
     for (const p of productions) {
       const isEpsilon = p.rhs[0] === "ε";
       const rhsLen = isEpsilon ? 0 : p.rhs.length;
@@ -179,8 +147,8 @@ function BacktrackingParser() {
   const applyMove = (
     currentStack: Node[],
     currentBuffer: string[],
-    move: Move,
-    actionType: action,
+    move: BacktrackMove,
+    actionType: ActionType,
   ) => {
     let nextStack = [...currentStack];
     let nextBuffer = [...currentBuffer];
@@ -219,11 +187,11 @@ function BacktrackingParser() {
 
     setStack(nextStack);
     setBuffer(nextBuffer);
-    setCurrentAction(move.type as action);
+    setCurrentAction(move.type as ActionType);
     addToHistory(
       nextStack,
       nextBuffer,
-      actionType === "BACKTRACK" ? "BACKTRACK" : (move.type as action),
+      actionType === "BACKTRACK" ? "BACKTRACK" : (move.type as ActionType),
       move.production,
     );
   };
@@ -231,7 +199,7 @@ function BacktrackingParser() {
   const addToHistory = (
     s: Node[],
     b: string[],
-    a: action,
+    a: ActionType,
     p?: Production,
     n?: string,
   ) => {

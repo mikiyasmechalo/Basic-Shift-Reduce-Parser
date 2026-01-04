@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { Production } from "../pages/BacktrackingParser";
 import Button from "./Button";
 import { parseProductions, tokenizeGrammar } from "../utils";
+import type { Production } from "../types/parser";
 
 interface Example {
   name: string;

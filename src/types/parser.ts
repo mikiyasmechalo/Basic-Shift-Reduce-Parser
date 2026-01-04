@@ -4,14 +4,14 @@ export interface Production {
   id: string;
 }
 
-export interface ParserNode {
+export interface Node {
   name: string;
-  children?: ParserNode[];
+  children?: Node[];
   attributes?: "t" | "nt" | "root" | string;
   id: string;
 }
 
-export type ParserActionType =
+export type ActionType =
   | "SHIFT"
   | "REDUCE"
   | "ACCEPT"
@@ -40,10 +40,10 @@ export type LRAction =
 
 export type ParsingTable = Record<number, Record<string, LRAction[]>>;
 
-export interface ParserSnapshot {
-  stack: ParserNode[];
+export interface Snapshot {
+  stack: Node[];
   buffer: string[];
-  action: ParserActionType;
+  action: ActionType;
   production?: Production;
   note?: string;
 }
@@ -51,6 +51,7 @@ export interface ParserSnapshot {
 export interface LRSnapshot {
   stack: { name: string; id: string | number }[];
   buffer: string[];
+  production?: Production;
   action: string;
   note: string;
 }
@@ -58,4 +59,10 @@ export interface LRSnapshot {
 export interface BacktrackMove {
   type: "SHIFT" | "REDUCE" | "ACCEPT";
   production?: Production;
+}
+
+export interface BacktrackFrame {
+  stack: Node[];
+  buffer: string[];
+  pendingMoves: BacktrackMove[];
 }

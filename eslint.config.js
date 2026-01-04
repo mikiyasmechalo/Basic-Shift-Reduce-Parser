@@ -26,6 +26,7 @@ export default defineConfig([
           varsIgnorePattern: "^ProductionRule$",
         },
       ],
+      "react-hooks/exhaustive-deps": "off",
     },
   },
 ]);

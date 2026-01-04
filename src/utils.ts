@@ -1,4 +1,4 @@
-import type { Production } from "./pages/GreedyParser";
+import type { Production } from "./types/parser";
 
 export const EPSILON = "ε";
 
