@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { Production } from "../pages/BacktrackingParser";
 import Button from "./Button";
 import { parseProductions, tokenizeGrammar } from "../utils";
@@ -45,21 +45,11 @@ const EXAMPLES: Example[] = [
     type: "standard",
     productions: [
       { lhs: "S", rhs: ["(", "S", ")", "S"] },
-      { lhs: "S", rhs: [] },
+      { lhs: "S", rhs: ["ε"] },
     ],
     input: "(()())",
   },
-  {
-    name: "Ambiguous If-Else",
-    description: "The classic dangling else problem.",
-    type: "limitation",
-    productions: [
-      { lhs: "S", rhs: ["i", "S", "e", "S"] },
-      { lhs: "S", rhs: ["i", "S"] },
-      { lhs: "S", rhs: ["a"] },
-    ],
-    input: "iiaea",
-  },
+
   {
     name: "Greedy Reduction Failure",
     description: "Assignment vs Expression mismatch.",
@@ -91,11 +81,10 @@ const GrammarInput = ({
   const [input, setInput] = useState(rInput);
   const [stringPr, setStringPr] = useState("");
 
-  // Keep state in sync if props change from outside
-  useEffect(() => {
-    if (rProductions?.length) setProductions(rProductions);
-    if (rInput) setInput(rInput);
-  }, [rProductions, rInput]);
+  // useEffect(() => {
+  //   if (rProductions?.length) setProductions(rProductions);
+  //   if (rInput) setInput(rInput);
+  // }, [rProductions, rInput]);
 
   const handleChange = (id: string, field: "lhs" | "rhs", value: string) => {
     setProductions((prev) =>
@@ -103,7 +92,7 @@ const GrammarInput = ({
         if (prod.id !== id) return prod;
         return field === "lhs"
           ? { ...prod, lhs: value.toUpperCase() }
-          : { ...prod, rhs: [value] }; // utils will tokenize this on submit
+          : { ...prod, rhs: [value] };
       }),
     );
   };
@@ -252,7 +241,11 @@ const GrammarInput = ({
           />
         </div>
 
-        <Button type="submit" className="w-full">
+        <Button
+          type="submit"
+          className="w-full bg-zinc-300 hover:bg-zinc-200"
+          disabled={input.length === 0}
+        >
           Initialize Parser
         </Button>
       </form>

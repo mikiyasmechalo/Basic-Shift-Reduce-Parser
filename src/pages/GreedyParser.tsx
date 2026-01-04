@@ -159,8 +159,11 @@ function GreedyParser() {
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans selection:bg-zinc-800 selection:text-white">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">
-            Greedy Shift-Reduce Parser Visualization
+          <h1 className="text-3xl font-bold text-zinc-100 flex items-center gap-2">
+            Shift-Reduce Parser
+            <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded uppercase">
+              Greedy
+            </span>
           </h1>
         </header>
 

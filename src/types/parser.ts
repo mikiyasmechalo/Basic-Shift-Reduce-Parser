@@ -40,9 +40,6 @@ export type LRAction =
 
 export type ParsingTable = Record<number, Record<string, LRAction[]>>;
 
-// --- Snapshot Types ---
-
-// Base Snapshot used by Greedy and Backtracking
 export interface ParserSnapshot {
   stack: ParserNode[];
   buffer: string[];
@@ -51,7 +48,6 @@ export interface ParserSnapshot {
   note?: string;
 }
 
-// Specialized Snapshot for LR parsers
 export interface LRSnapshot {
   stack: { name: string; id: string | number }[];
   buffer: string[];

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import GrammarInput from "../components/GrammarInput";
 import TableView from "../components/TableView";
 import Button from "../components/Button";
@@ -54,6 +54,8 @@ function BacktrackingParser() {
   const [backtrackStack, setBacktrackStack] = useState<BacktrackFrame[]>([]);
   const [input, setInput] = useState("");
   const [isFinished, setIsFinished] = useState(false);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [isTreeFullscreen, setIsTreeFullscreen] = useState(false);
 
   const initializeParser = (pr: Production[], inp: string) => {
     const initialStack = [{ name: "$", id: crypto.randomUUID() }];
@@ -81,34 +83,49 @@ function BacktrackingParser() {
     currentBuffer: string[],
   ): Move[] => {
     const moves: Move[] = [];
+    const bufferTop = currentBuffer[0];
 
     if (
-      currentStack.length === 2 &&
       currentBuffer.length === 1 &&
-      currentBuffer[0] === "$" &&
+      bufferTop === "$" &&
+      currentStack.length === 2 &&
       currentStack[1].name === productions[0]?.lhs
     ) {
       return [{ type: "ACCEPT" }];
     }
 
+    if (bufferTop !== "$") {
+      moves.push({ type: "SHIFT" });
+    }
+
+    const reductions: Move[] = [];
     for (const p of productions) {
-      const rhsLen = p.rhs.length;
+      const isEpsilon = p.rhs[0] === "ε";
+      const rhsLen = isEpsilon ? 0 : p.rhs.length;
+
       if (currentStack.length >= rhsLen) {
-        const stackStr = currentStack
-          .slice(-rhsLen)
-          .map((n) => n.name)
-          .join("");
-        if (stackStr === p.rhs.join("")) {
-          moves.push({ type: "REDUCE", production: p });
+        const stackSuffix = currentStack.slice(currentStack.length - rhsLen);
+        const match =
+          isEpsilon || p.rhs.every((sym, i) => stackSuffix[i].name === sym);
+
+        if (match) {
+          // Loop protection for ε
+          if (
+            isEpsilon &&
+            currentStack[currentStack.length - 1]?.name === p.lhs
+          )
+            continue;
+          reductions.push({ type: "REDUCE", production: p });
         }
       }
     }
 
-    if (currentBuffer.length > 0 && currentBuffer[0] !== "$") {
-      moves.push({ type: "SHIFT" });
-    }
+    reductions.sort(
+      (a, b) =>
+        (b.production?.rhs.length || 0) - (a.production?.rhs.length || 0),
+    );
 
-    return moves;
+    return [...moves, ...reductions];
   };
 
   const stepParserRobust = () => {
@@ -159,7 +176,6 @@ function BacktrackingParser() {
 
     applyMove(stack, buffer, selectedMove, selectedMove.type);
   };
-
   const applyMove = (
     currentStack: Node[],
     currentBuffer: string[],
@@ -178,17 +194,27 @@ function BacktrackingParser() {
       nextBuffer = nextBuffer.slice(1);
     } else if (move.type === "REDUCE" && move.production) {
       const p = move.production;
+      const isEpsilon = p.rhs[0] === "ε";
+      const rhsLen = isEpsilon ? 0 : p.rhs.length;
+
+      const children = isEpsilon
+        ? [{ name: "ε", id: crypto.randomUUID(), attributes: "t" }]
+        : nextStack.slice(nextStack.length - rhsLen);
+
       const newNode: Node = {
         name: p.lhs,
         id: crypto.randomUUID(),
         attributes: "nt",
-        children: nextStack.slice(-p.rhs.length),
+        children: children,
       };
-      nextStack = [...nextStack.slice(0, -p.rhs.length), newNode];
+
+      // Remove the N items from the end of the stack and push the new Node
+      nextStack = [...nextStack.slice(0, nextStack.length - rhsLen), newNode];
     } else if (move.type === "ACCEPT") {
+      setIsFinished(true);
+      setIsAutoPlaying(false);
       const top = nextStack[nextStack.length - 1];
       nextStack = [...nextStack.slice(0, -1), { ...top, attributes: "root" }];
-      setIsFinished(true);
     }
 
     setStack(nextStack);
@@ -199,7 +225,6 @@ function BacktrackingParser() {
       nextBuffer,
       actionType === "BACKTRACK" ? "BACKTRACK" : (move.type as action),
       move.production,
-      actionType === "BACKTRACK" ? `Retrying with ${move.type}` : undefined,
     );
   };
 
@@ -215,13 +240,24 @@ function BacktrackingParser() {
       { stack: s, buffer: b, action: a, production: p, note: n },
     ]);
   };
+  useEffect(() => {
+    if (!isAutoPlaying || isFinished) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      stepParserRobust();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [isAutoPlaying, isFinished, stack, buffer, currentAction]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-zinc-100 flex items-center gap-2">
-            Parser Visualization
+            Shift-Reduce Parser
             <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded uppercase">
               Backtracking
             </span>
@@ -244,13 +280,20 @@ function BacktrackingParser() {
                   : "primary"
               }
               onClick={stepParserRobust}
-              disabled={isFinished && currentAction !== "REJECT"}
+              disabled={(isFinished && currentAction !== "REJECT") || !input}
             >
               {currentAction === "REJECT" && backtrackStack.length > 0
                 ? "Backtrack & Retry"
                 : "Step Parser"}
             </Button>
-
+            <Button
+              className="w-full sm:w-auto"
+              variant="secondary"
+              onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+              disabled={(isFinished && currentAction !== "REJECT") || !input}
+            >
+              {isAutoPlaying ? "⏸ Stop" : "⏭ Auto-Solve"}
+            </Button>
             <div className="flex flex-col">
               <span className="text-xs text-zinc-500 uppercase font-bold">
                 Action
@@ -284,6 +327,29 @@ function BacktrackingParser() {
 
             <div className="lg:col-span-7 h-150 flex flex-col gap-4">
               <div className="flex-1 border border-zinc-800 rounded-lg overflow-hidden bg-zinc-900/30 relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsTreeFullscreen(true);
+                  }}
+                  className="cursor-pointer absolute top-4 right-4 z-9999 p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow-2xl transition-all active:scale-90 flex items-center gap-2 text-xs font-bold"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                </button>
+
                 <TreeView stack={stack} accepted={currentAction === "ACCEPT"} />
               </div>
 
@@ -305,6 +371,25 @@ function BacktrackingParser() {
           </div>
         </div>
       </div>
+
+      {isTreeFullscreen && (
+        <div className="fixed inset-0 z-10000 bg-zinc-950 flex flex-col animate-in fade-in duration-200">
+          <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800">
+            <span className="text-zinc-100 font-bold">
+              Fullscreen Parse Tree
+            </span>
+            <button
+              onClick={() => setIsTreeFullscreen(false)}
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/50 transition-colors"
+            >
+              Exit Fullscreen
+            </button>
+          </div>
+          <div className="flex-1 w-full h-full overflow-hidden">
+            <TreeView stack={stack} accepted={currentAction === "ACCEPT"} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
