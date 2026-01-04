@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Button from "./Button";
-import type { Production } from "../App";
+import type { Production } from "../pages/BacktrackingParser";
 
 interface Example {
   name: string;
@@ -51,7 +51,7 @@ const GrammarExamples = ({
       type: "standard",
       productions: [
         { lhs: "S", rhs: ["(", "S", ")", "S"] },
-        { lhs: "S", rhs: [] },
+        { lhs: "S", rhs: ["ε"] },
       ],
       input: "(()())",
     },
@@ -66,7 +66,7 @@ const GrammarExamples = ({
         { lhs: "S", rhs: ["i", "S"] },
         { lhs: "S", rhs: ["a"] },
       ],
-      input: "iiaea",
+      input: "i i a e a",
     },
     {
       name: "Immediate Left Recursion",

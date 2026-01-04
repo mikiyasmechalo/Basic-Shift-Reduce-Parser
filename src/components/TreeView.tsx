@@ -1,11 +1,17 @@
 import Tree, { type RawNodeDatum } from "react-d3-tree";
-import type { Node } from "../App";
+import type { Node } from "../pages/BacktrackingParser";
 
-function normalize(node: Node): RawNodeDatum {
+function normalize(node: Node | undefined): RawNodeDatum | null {
+  if (!node || node.name === "$") return null;
+
   return {
-    name: node.name,
+    name: node.name || "Unknown",
     attributes: node.attributes ? { type: node.attributes } : undefined,
-    children: node.children?.map(normalize),
+    children: node.children
+      ? node.children
+          .map(normalize)
+          .filter((child): child is RawNodeDatum => child !== null)
+      : undefined,
   };
 }
 
@@ -16,14 +22,22 @@ const TreeView = ({
   stack: Node[];
   accepted?: boolean;
 }) => {
-  const slimStack = stack.slice(1);
-  const treeData = accepted
-    ? normalize(stack[1])
-    : normalize({
-        name: "Stack",
-        children: slimStack,
-        id: crypto.randomUUID(),
-      });
+  if (!stack || stack.length === 0) return null;
+
+  let root: RawNodeDatum | null = null;
+
+  if (accepted) {
+    const validRoot = stack[0]?.name === "$" ? stack[1] : stack[0];
+    root = normalize(validRoot);
+  } else {
+    root = normalize({
+      name: "Stack",
+      children: stack,
+      id: "virtual-root",
+    });
+  }
+
+  if (!root) return null;
 
   return (
     <div className="flex flex-col h-full w-full bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden shadow-sm">
@@ -32,12 +46,12 @@ const TreeView = ({
       </div>
       <div className="flex-1 w-full h-125">
         <Tree
-          data={treeData as unknown as RawNodeDatum}
+          data={root}
           orientation="vertical"
           collapsible={false}
           translate={{ x: 300, y: 50 }}
           transitionDuration={500}
-          pathClassFunc={() => "stroke-zinc-600 !stroke-1"}
+          pathClassFunc={() => "custom-link"}
           renderCustomNodeElement={({ nodeDatum }) => (
             <g>
               <circle
@@ -46,16 +60,16 @@ const TreeView = ({
                   nodeDatum.attributes?.type === "nt"
                     ? "#52525b"
                     : nodeDatum.attributes?.type === "root"
-                      ? "green"
+                      ? "#166534"
                       : "#27272a"
                 }
-                stroke="#71717a"
+                stroke="#fff"
                 strokeWidth="2"
               />
               <text
                 fill="#ffffff"
                 stroke="none"
-                fontSize="14px"
+                fontSize="12px"
                 fontWeight="600"
                 x="0"
                 dy="5"

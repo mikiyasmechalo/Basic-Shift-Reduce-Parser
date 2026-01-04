@@ -1,45 +1,52 @@
-import type { Production } from "./App";
+import type { Production } from "./pages/GreedyParser";
+
+export const EPSILON = "ε";
 
 export function tokenizeGrammar(rhs: string): string[] {
   const tokens: string[] = [];
   let i = 0;
 
   while (i < rhs.length) {
-    const c = rhs[i];
+    const char = rhs[i];
 
-    // skip whitespace
-    if (/\s/.test(c)) {
+    if (/\s/.test(char)) {
       i++;
       continue;
     }
 
-    // multi-character terminals/non-terminals (like "id")
-    if (/[a-zA-Z]/.test(c)) {
-      let symbol = c;
+    // Handle Epsilon (ε or the word "epsilon")
+    if (char === EPSILON || rhs.startsWith("epsilon", i)) {
+      tokens.push(EPSILON);
+      i += char === EPSILON ? 1 : 7;
+      continue;
+    }
+
+    // Multi-character identifiers
+    if (/[a-zA-Z]/.test(char)) {
+      let symbol = char;
       i++;
       while (i < rhs.length && /[a-zA-Z0-9]/.test(rhs[i])) {
         symbol += rhs[i++];
       }
-      // tokens.push(symbol);
-      tokens.push(isCapitalLetter(symbol) ? symbol : "id");
+      tokens.push(symbol);
       continue;
     }
 
-    // operators and parentheses
-    if ("+*()=<>,".includes(c)) {
-      tokens.push(c);
+    const dualChar = rhs.slice(i, i + 2);
+    if (["==", "<=", ">="].includes(dualChar)) {
+      tokens.push(dualChar);
+      i += 2;
+      continue;
+    }
+
+    // Single character operators and punctuation
+    if ("+*()=<>|,/^&!".includes(char)) {
+      tokens.push(char);
       i++;
       continue;
     }
 
-    // epsilon (ε)
-    if (c === "ε") {
-      tokens.push("ε");
-      i++;
-      continue;
-    }
-
-    throw new Error(`Unexpected character in grammar: ${c}`);
+    throw new Error(`Unexpected character in grammar: ${char}`);
   }
 
   return tokens;
@@ -50,66 +57,88 @@ export function tokenize(input: string): string[] {
   let i = 0;
 
   while (i < input.length) {
-    const c = input[i];
+    const char = input[i];
 
-    // skip whitespace
-    if (/\s/.test(c)) {
+    if (/\s/.test(char)) {
       i++;
       continue;
     }
 
-    // identifier
-    if (/[a-zA-Z]/.test(c)) {
-      let id = c;
+    // Identifiers/Names
+    if (/[a-zA-Z]/.test(char)) {
+      let id = char;
       i++;
       while (i < input.length && /[a-zA-Z0-9]/.test(input[i])) {
         id += input[i++];
       }
-      tokens.push("id");
-      // tokens.push(id.length > 1 ? "id" : id);
+      tokens.push(id);
       continue;
     }
 
-    // operators / parentheses
-    if ("+*()=<>,".includes(c)) {
-      tokens.push(c);
+    // Numbers
+    if (/[0-9]/.test(char)) {
+      let num = char;
+      i++;
+      while (i < input.length && /[0-9]/.test(input[i])) {
+        num += input[i++];
+      }
+      tokens.push(num);
+      continue;
+    }
+
+    // Multi-character operators
+    const dualChar = input.slice(i, i + 2);
+    if (["==", "<=", ">="].includes(dualChar)) {
+      tokens.push(dualChar);
+      i += 2;
+      continue;
+    }
+
+    if ("+*()=<>,^&!|".includes(char)) {
+      tokens.push(char);
       i++;
       continue;
     }
 
-    throw new Error(`Unexpected character: ${c}`);
+    throw new Error(`Unexpected character: ${char}`);
   }
 
   return tokens;
 }
 
-export const productionToString = (p: Production) => p.lhs + "→" + p.rhs;
+export const productionToString = (p: Production) =>
+  `${p.lhs} → ${p.rhs.length === 0 ? EPSILON : p.rhs.join(" ")}`;
 
 export function parseProductions(input: string): Production[] {
-  const lines = input
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
   const productions: Production[] = [];
+  const lines = input.split(/\n/).filter((line) => line.trim().length > 0);
 
   for (const line of lines) {
-    const [lhsPart, rhsPart] = line.split("->").map((s) => s.trim());
-    if (!lhsPart || !rhsPart) continue;
+    const parts = line.split(/->|→|=>/);
+    if (parts.length < 2) continue;
 
-    const rhsList = rhsPart.split("|").map((s) => s.trim());
+    const lhs = parts[0].trim();
+    const rhsContent = parts[1].trim();
 
-    for (const rhs of rhsList) {
+    const choices = rhsContent.split("|").map((s) => s.trim());
+
+    for (const choice of choices) {
+      const isEpsilon =
+        choice === EPSILON ||
+        choice.toLowerCase() === "epsilon" ||
+        choice === "";
+
       productions.push({
-        lhs: lhsPart ? lhsPart[0].toUpperCase() : "",
-        rhs: tokenizeGrammar(rhs.replace(/\s+/g, "")),
         id: crypto.randomUUID(),
+        lhs: lhs.toUpperCase(),
+        rhs: isEpsilon ? [] : tokenizeGrammar(choice),
       });
     }
   }
 
   return productions;
 }
-function isCapitalLetter(str: string): boolean {
-  return /^[A-Z]$/.test(str);
+
+export function isNonTerminal(symbol: string): boolean {
+  return /^[A-Z][a-zA-Z0-9]*$/.test(symbol);
 }

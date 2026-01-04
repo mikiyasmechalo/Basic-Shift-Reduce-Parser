@@ -1,4 +1,4 @@
-import type { Snapshot } from "../App";
+import type { Snapshot } from "../pages/BacktrackingParser";
 import { productionToString } from "../utils";
 
 const TableView = ({ parserHistory }: { parserHistory: Snapshot[] }) => {
