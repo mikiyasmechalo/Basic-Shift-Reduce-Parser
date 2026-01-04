@@ -366,13 +366,14 @@ function LR0Parser() {
     ]);
   };
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isAutoPlaying && !isFinished) {
-      interval = setInterval(() => {
-        stepParser();
-      }, autoPlaySpeed);
+    if (!isAutoPlaying || isFinished) {
+      return;
     }
-    return () => clearInterval(interval);
+    const timer = window.setTimeout(() => {
+      stepParser();
+    }, autoPlaySpeed);
+
+    return () => clearTimeout(timer);
   }, [isAutoPlaying, isFinished, stepParser, autoPlaySpeed]);
 
   const toggleAutoPlay = () => {
