@@ -8,9 +8,6 @@ const TableView = ({
 }) => {
   return (
     <div className="flex flex-col h-full bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden shadow-sm">
-      <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900">
-        <h3 className="text-sm font-semibold text-zinc-300">Parsing Table</h3>
-      </div>
       <div className="flex-1 overflow-auto custom-scrollbar">
         <table className="min-w-full divide-y divide-zinc-800">
           <thead className="bg-zinc-950 sticky top-0 z-10">

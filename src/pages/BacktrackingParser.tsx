@@ -12,6 +12,10 @@ import type {
   Node,
   BacktrackFrame,
 } from "../types/parser";
+import { ParserLayout } from "../components/ParserLayout";
+import { ControlBar } from "../components/ControlBar";
+import { VisualizationSplit } from "../components/VisualizationSplit";
+import { PanelContainer } from "../components/PanelContainer";
 
 function BacktrackingParser() {
   const [stack, setStack] = useState<Node[]>([]);
@@ -23,7 +27,6 @@ function BacktrackingParser() {
   const [input, setInput] = useState("");
   const [isFinished, setIsFinished] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const [isTreeFullscreen, setIsTreeFullscreen] = useState(false);
 
   const initializeParser = (pr: Production[], inp: string) => {
     const initialStack = [{ name: "$", id: crypto.randomUUID() }];
@@ -221,144 +224,48 @@ function BacktrackingParser() {
   }, [isAutoPlaying, isFinished, stack, buffer, currentAction]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-100 flex items-center gap-2">
-            Shift-Reduce Parser
-            <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded uppercase">
-              Backtracking
-            </span>
-          </h1>
-        </header>
+    <ParserLayout title="Shift-Reduce Parser" badgeText="Backtracking">
+      <GrammarInput
+        rInput={input}
+        rProductions={productions}
+        onSubmit={initializeParser}
+      />
 
-        <div className="space-y-6">
-          <GrammarInput
-            rInput={input}
-            rProductions={productions}
-            onSubmit={initializeParser}
-          />
+      <ControlBar
+        onStep={stepParserRobust}
+        canStep={(!isFinished || currentAction === "REJECT") && !!input}
+        stepLabel={
+          currentAction === "REJECT" && backtrackStack.length > 0
+            ? "Backtrack & Retry"
+            : "Step Parser"
+        }
+        actionStatus={currentAction}
+      >
+        <Button
+          className="w-full sm:w-auto"
+          variant="secondary"
+          onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+          disabled={(isFinished && currentAction !== "REJECT") || !input}
+        >
+          {isAutoPlaying ? "⏸ Stop" : "⏭ Auto-Solve"}
+        </Button>
+      </ControlBar>
 
-          <div className="flex items-center gap-4 border-t border-zinc-900 pt-6">
-            <Button
-              className="w-full sm:w-auto"
-              variant={
-                currentAction === "REJECT" && backtrackStack.length > 0
-                  ? "danger"
-                  : "primary"
-              }
-              onClick={stepParserRobust}
-              disabled={(isFinished && currentAction !== "REJECT") || !input}
-            >
-              {currentAction === "REJECT" && backtrackStack.length > 0
-                ? "Backtrack & Retry"
-                : "Step Parser"}
-            </Button>
-            <Button
-              className="w-full sm:w-auto"
-              variant="secondary"
-              onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-              disabled={(isFinished && currentAction !== "REJECT") || !input}
-            >
-              {isAutoPlaying ? "⏸ Stop" : "⏭ Auto-Solve"}
-            </Button>
-            <div className="flex flex-col">
-              <span className="text-xs text-zinc-500 uppercase font-bold">
-                Action
-              </span>
-              <div
-                className={`text-lg font-mono font-bold ${currentAction === "REJECT" ? "text-red-400" : currentAction === "ACCEPT" ? "text-green-400" : "text-zinc-200"}`}
-              >
-                {currentAction}
-              </div>
+      <VisualizationSplit
+        leftPanel={
+          <PanelContainer title="Parsing Steps" enableFullscreen={true}>
+            <TableView parserHistory={snapshots} />
+          </PanelContainer>
+        }
+        rightPanel={
+          <PanelContainer title="Parse Tree" enableFullscreen={true}>
+            <div className="w-full h-full">
+              <TreeView stack={stack} accepted={currentAction === "ACCEPT"} />
             </div>
-
-            <div className="ml-auto flex items-center gap-3 bg-zinc-900/50 p-2 rounded-lg border border-zinc-800">
-              <div className="text-right">
-                <div className="text-xs text-zinc-500 uppercase font-bold">
-                  Saved Paths
-                </div>
-                <div className="text-sm font-mono text-zinc-300">
-                  {backtrackStack.length}
-                </div>
-              </div>
-              <div
-                className={`w-3 h-3 rounded-full ${backtrackStack.length > 0 ? "bg-indigo-500 animate-pulse" : "bg-zinc-800"}`}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
-            <div className="lg:col-span-5 h-150 flex flex-col">
-              <TableView parserHistory={snapshots} />
-            </div>
-
-            <div className="lg:col-span-7 h-150 flex flex-col gap-4">
-              <div className="flex-1 border border-zinc-800 rounded-lg overflow-hidden bg-zinc-900/30 relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsTreeFullscreen(true);
-                  }}
-                  className="cursor-pointer absolute top-4 right-4 z-9999 p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow-2xl transition-all active:scale-90 flex items-center gap-2 text-xs font-bold"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                    />
-                  </svg>
-                </button>
-
-                <TreeView stack={stack} accepted={currentAction === "ACCEPT"} />
-              </div>
-
-              <div className="h-1/3 border border-zinc-800 rounded-lg p-4 bg-zinc-900/30 overflow-y-auto font-mono text-sm">
-                <div className="mb-2">
-                  <span className="text-zinc-500 mr-2">BUFFER:</span>
-                  <span className="text-yellow-100/90 break-all">
-                    [{buffer.join(" ")}]
-                  </span>
-                </div>
-                <div>
-                  <span className="text-zinc-500 mr-2">STACK:</span>
-                  <span className="text-indigo-200/90">
-                    {stack.map((n) => n.name).join(" ")}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {isTreeFullscreen && (
-        <div className="fixed inset-0 z-10000 bg-zinc-950 flex flex-col animate-in fade-in duration-200">
-          <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800">
-            <span className="text-zinc-100 font-bold">
-              Fullscreen Parse Tree
-            </span>
-            <button
-              onClick={() => setIsTreeFullscreen(false)}
-              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-md border border-red-500/50 transition-colors"
-            >
-              Exit Fullscreen
-            </button>
-          </div>
-          <div className="flex-1 w-full h-full overflow-hidden">
-            <TreeView stack={stack} accepted={currentAction === "ACCEPT"} />
-          </div>
-        </div>
-      )}
-    </div>
+          </PanelContainer>
+        }
+      />
+    </ParserLayout>
   );
 }
 

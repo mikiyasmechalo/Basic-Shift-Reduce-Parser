@@ -37,7 +37,7 @@ const EXAMPLES: Example[] = [
       { lhs: "F", rhs: ["(", "E", ")"] },
       { lhs: "F", rhs: ["id"] },
     ],
-    input: "id+id*id",
+    input: "(id+id)*id",
   },
   {
     name: "Balanced Parentheses",

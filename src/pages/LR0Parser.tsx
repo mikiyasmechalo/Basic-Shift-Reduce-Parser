@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import GrammarInput from "../components/GrammarInput";
 import TableView from "../components/TableView";
-import Button from "../components/Button";
 import TreeView from "../components/TreeView";
+import Button from "../components/Button";
+import { ParserLayout } from "../components/ParserLayout";
+import { ControlBar } from "../components/ControlBar";
+import { VisualizationSplit } from "../components/VisualizationSplit";
+import { PanelContainer } from "../components/PanelContainer";
 import { tokenize } from "../utils";
 import type {
   Production,
@@ -34,7 +38,6 @@ function LR0Parser() {
   const [parsingTable, setParsingTable] = useState<ParsingTable>({});
   const [conflicts, setConflicts] = useState<string[]>([]);
 
-  // Simulation State
   const [stack, setStack] = useState<number[]>([0]);
   const [symbolStack, setSymbolStack] = useState<string[]>(["$"]);
   const [treeStack, setTreeStack] = useState<Node[]>([]);
@@ -42,6 +45,8 @@ function LR0Parser() {
   const [snapshots, setSnapshots] = useState<LRSnapshot[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const [currentAction, setCurrentAction] = useState<string>("");
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [autoPlaySpeed] = useState(500);
 
   const getClosure = (kernel: LRItem[], allProds: Production[]): LRItem[] => {
     const closure = [...kernel];
@@ -312,6 +317,7 @@ function LR0Parser() {
         handleParseEnd("REJECT", "GOTO Fail");
       }
     } else if (action.type === "ACCEPT") {
+      setIsAutoPlaying(false);
       const finalTree = [...treeStack];
       console.log("Final Tree:", finalTree);
 
@@ -359,193 +365,196 @@ function LR0Parser() {
       },
     ]);
   };
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isAutoPlaying && !isFinished) {
+      interval = setInterval(() => {
+        stepParser();
+      }, autoPlaySpeed);
+    }
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, isFinished, stepParser, autoPlaySpeed]);
 
+  const toggleAutoPlay = () => {
+    if (isFinished) {
+      resetSimulation(inputStr);
+      setIsAutoPlaying(true);
+    } else {
+      setIsAutoPlaying(!isAutoPlaying);
+    }
+  };
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <header>
-          <h1 className="text-3xl font-bold text-zinc-100">
-            LR(0) Parser Generator
-          </h1>
-          <p className="text-zinc-500">Canonical Collection and Simulation.</p>
-        </header>
+    <ParserLayout title="LR(0) Parser Generator" badgeText="Bottom-Up">
+      <div className="p-2">
+        <GrammarInput
+          rInput={inputStr}
+          rProductions={productions}
+          onSubmit={(p, i) => {
+            setProductions(p);
+            setInputStr(i);
+            setBuffer([...tokenize(i), "$"]);
+            buildAutomaton(p);
+            resetSimulation(i);
+          }}
+        />
+      </div>
 
-        <section className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-800">
-          <GrammarInput
-            rInput={inputStr}
-            rProductions={productions}
-            onSubmit={(p, i) => {
-              setProductions(p);
-              setInputStr(i);
-              setBuffer([...tokenize(i), "$"]);
-              buildAutomaton(p);
-              resetSimulation(i);
-            }}
-          />
-        </section>
-
-        {states.length > 0 && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 h-96 flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-zinc-800 bg-zinc-900 font-bold">
-                  Canonical Collection
-                </div>
-                <div className="overflow-auto p-4 space-y-4">
-                  {states.map((s) => (
-                    <div
-                      key={s.id}
-                      className="bg-zinc-950 border border-zinc-800 p-3 rounded text-sm relative"
-                    >
-                      <div className="absolute top-2 right-2 text-zinc-600 font-mono text-xs">
-                        I{s.id}
-                      </div>
-                      <ul className="font-mono">
-                        {s.items.map((item, idx) => (
-                          <li
-                            key={idx}
-                            className={
-                              item.dot === item.rhs.length
-                                ? "text-green-400"
-                                : ""
-                            }
-                          >
-                            {itemToString(item)}
-                          </li>
-                        ))}
-                      </ul>
+      {states.length > 0 && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PanelContainer title="Canonical Collection" className="h-150!">
+              <div className="p-4 space-y-4">
+                {states.map((s) => (
+                  <div
+                    key={s.id}
+                    className="bg-zinc-950 border border-zinc-800 p-3 rounded text-sm relative"
+                  >
+                    <div className="absolute top-2 right-2 text-zinc-600 font-mono text-xs">
+                      I{s.id}
                     </div>
-                  ))}
-                </div>
+                    <ul className="font-mono">
+                      {s.items.map((item, idx) => (
+                        <li
+                          key={idx}
+                          className={
+                            item.dot === item.rhs.length ? "text-green-400" : ""
+                          }
+                        >
+                          {itemToString(item)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
+            </PanelContainer>
 
-              <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 h-96 flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-zinc-800 bg-zinc-900 flex justify-between">
-                  <span className="font-bold">Parsing Table</span>
-                  {conflicts.length > 0 && (
-                    <span className="text-red-400 text-xs">
-                      {conflicts.length} Conflicts
-                    </span>
-                  )}
+            {/* Parsing Table Panel */}
+            <PanelContainer title="Parsing Table" className="h-96">
+              {conflicts.length > 0 && (
+                <div className="px-4 py-2 bg-red-900/20 text-red-400 text-xs border-b border-red-900/30">
+                  ⚠ {conflicts.length} Conflicts Detected
                 </div>
-                <div className="overflow-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-zinc-950 text-zinc-500 sticky top-0">
-                      <tr>
-                        <th className="p-2 border-b border-zinc-800">State</th>
+              )}
+              <div className="overflow-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-zinc-950 text-zinc-500 sticky top-0">
+                    <tr>
+                      <th className="p-2 border-b border-zinc-800">State</th>
+                      {Array.from(
+                        new Set(
+                          states.flatMap((s) =>
+                            Object.keys(parsingTable[s.id] || {}),
+                          ),
+                        ),
+                      )
+                        .sort()
+                        .map((sym) => (
+                          <th
+                            key={sym}
+                            className="p-2 border-b border-zinc-800"
+                          >
+                            {sym}
+                          </th>
+                        ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {states.map((s) => (
+                      <tr key={s.id} className="border-b border-zinc-900">
+                        <td className="p-2 font-bold text-zinc-500">I{s.id}</td>
                         {Array.from(
                           new Set(
-                            states.flatMap((s) =>
-                              Object.keys(parsingTable[s.id] || {}),
+                            states.flatMap((st) =>
+                              Object.keys(parsingTable[st.id] || {}),
                             ),
                           ),
                         )
                           .sort()
                           .map((sym) => (
-                            <th
-                              key={sym}
-                              className="p-2 border-b border-zinc-800"
-                            >
-                              {sym}
-                            </th>
+                            <td key={sym} className="p-2">
+                              {parsingTable[s.id]?.[sym]?.map((a, i) => (
+                                <span
+                                  key={i}
+                                  className="block font-mono text-indigo-400"
+                                >
+                                  {a.type === "SHIFT"
+                                    ? `s${a.to}`
+                                    : a.type === "REDUCE"
+                                      ? `r${a.production.lhs}`
+                                      : "acc"}
+                                </span>
+                              ))}
+                            </td>
                           ))}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {states.map((s) => (
-                        <tr key={s.id} className="border-b border-zinc-900">
-                          <td className="p-2 font-bold text-zinc-500">
-                            I{s.id}
-                          </td>
-                          {Array.from(
-                            new Set(
-                              states.flatMap((st) =>
-                                Object.keys(parsingTable[st.id] || {}),
-                              ),
-                            ),
-                          )
-                            .sort()
-                            .map((sym) => (
-                              <td key={sym} className="p-2">
-                                {parsingTable[s.id]?.[sym]?.map((a, i) => (
-                                  <span
-                                    key={i}
-                                    className="block font-mono text-indigo-400"
-                                  >
-                                    {a.type === "SHIFT"
-                                      ? `s${a.to}`
-                                      : a.type === "REDUCE"
-                                        ? `r${a.production.lhs}`
-                                        : "acc"}
-                                  </span>
-                                ))}
-                              </td>
-                            ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex gap-4 items-center">
-                <Button
-                  onClick={stepParser}
-                  disabled={isFinished}
-                  variant={isFinished ? "secondary" : "primary"}
-                >
-                  Step
-                </Button>
-                <Button
-                  onClick={() => resetSimulation(inputStr)}
-                  variant="secondary"
-                >
-                  Reset
-                </Button>
-                <div className="text-sm font-mono px-4 py-2 bg-zinc-900 border border-zinc-800 rounded">
-                  Action: {currentAction}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="h-125 flex flex-col">
-                  <TableView parserHistory={snapshots} />
-                </div>
-
-                <div className="h-125 bg-zinc-900/50 rounded-xl border border-zinc-800 overflow-hidden relative flex flex-col">
-                  <div className="p-3 border-b border-zinc-800 bg-zinc-900/80 text-xs font-bold text-zinc-500 uppercase z-10">
-                    Parse Tree (Live)
-                  </div>
-                  <div className="flex-1 w-full h-full">
-                    <TreeView
-                      stack={treeStack}
-                      accepted={isFinished && currentAction === "ACCEPT"}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 font-mono text-xs">
-                  <div className="text-zinc-600 mb-1">STATE STACK</div>
-                  <div className="text-indigo-400 wrap-break-word">
-                    [{stack.join(", ")}]
-                  </div>
-                </div>
-                <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 font-mono text-xs">
-                  <div className="text-zinc-600 mb-1">SYMBOL STACK</div>
-                  <div className="text-yellow-500 wrap-break-word">
-                    [{symbolStack.join(" ")}]
-                  </div>
-                </div>
-              </div>
-            </div>
+            </PanelContainer>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Simulation Controls */}
+          <ControlBar
+            onStep={stepParser}
+            canStep={!isFinished}
+            actionStatus={currentAction}
+            stepLabel="Step Simulation"
+          >
+            <Button
+              onClick={toggleAutoPlay}
+              variant={isAutoPlaying ? "secondary" : "primary"}
+              className="min-w-30"
+            >
+              {isAutoPlaying ? "⏸ Pause" : "▶ Auto Run"}
+            </Button>
+            <Button
+              onClick={() => {
+                setIsAutoPlaying(false);
+                resetSimulation(inputStr);
+              }}
+              variant="secondary"
+            >
+              Reset
+            </Button>
+          </ControlBar>
+
+          {/* Simulation Visualization */}
+          <VisualizationSplit
+            leftPanel={
+              <PanelContainer title="Simulation History">
+                <TableView parserHistory={snapshots} />
+              </PanelContainer>
+            }
+            rightPanel={
+              <PanelContainer title="Parse Tree" enableFullscreen={true}>
+                <div className="w-full h-full">
+                  <TreeView
+                    stack={treeStack}
+                    accepted={isFinished && currentAction === "ACCEPT"}
+                  />
+                </div>
+              </PanelContainer>
+            }
+          />
+
+          {/* Stack Debug Views */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PanelContainer title="State Stack" className="h-auto">
+              <div className="p-4 font-mono text-xs text-indigo-400 break-all">
+                [{stack.join(", ")}]
+              </div>
+            </PanelContainer>
+            <PanelContainer title="Symbol Stack" className="h-auto">
+              <div className="p-4 font-mono text-xs text-yellow-500 break-all">
+                [{symbolStack.join(" ")}]
+              </div>
+            </PanelContainer>
+          </div>
+        </div>
+      )}
+    </ParserLayout>
   );
 }
 

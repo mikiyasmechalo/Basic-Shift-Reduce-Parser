@@ -1,10 +1,12 @@
 import { useState } from "react";
 import GrammarInput from "../components/GrammarInput";
 import TableView from "../components/TableView";
-import Button from "../components/Button";
 import TreeView from "../components/TreeView";
 import { tokenize } from "../utils";
 import type { ActionType, Production, Snapshot, Node } from "../types/parser";
+import { ParserLayout } from "../components/ParserLayout";
+import { ControlBar } from "../components/ControlBar";
+import { VisualizationSplit } from "../components/VisualizationSplit";
 
 type NextStep = { type: ActionType; index?: number };
 
@@ -134,61 +136,26 @@ function GreedyParser() {
       },
     ]);
   };
-
+  const isFinished = action === "ACCEPT" || action === "REJECT";
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-sans selection:bg-zinc-800 selection:text-white">
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-100 flex items-center gap-2">
-            Shift-Reduce Parser
-            <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded uppercase">
-              Greedy
-            </span>
-          </h1>
-        </header>
+    <ParserLayout title="Shift-Reduce Parser" badgeText="Greedy">
+      <GrammarInput
+        rInput={input}
+        rProductions={productions}
+        onSubmit={initializeParser}
+      />
 
-        <div className="space-y-6">
-          <GrammarInput
-            rInput={input}
-            rProductions={productions}
-            onSubmit={initializeParser}
-          />
+      <ControlBar
+        onStep={stepParser}
+        canStep={input.length > 0 && !isFinished}
+        actionStatus={action}
+      />
 
-          <div className="flex items-center gap-4 border-t border-zinc-900 pt-6">
-            <Button
-              className="w-full sm:w-auto"
-              variant="primary"
-              onClick={stepParser}
-              disabled={
-                input.length == 0 || action == "REJECT" || action == "ACCEPT"
-              }
-            >
-              Step Parser
-            </Button>
-            {action && (
-              <span className="text-sm font-mono px-3 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-                Next Action:{" "}
-                <div
-                  className={`text-lg font-mono font-bold ${action === "REJECT" ? "text-red-400" : action === "ACCEPT" ? "text-green-400" : "text-zinc-200"}`}
-                >
-                  {action}
-                </div>
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-            <div className="h-full min-h-125">
-              <TableView parserHistory={snapshots} />
-            </div>
-            <div className="h-full min-h-125">
-              <TreeView stack={stack} accepted={action === "ACCEPT"} />
-            </div>
-          </div>
-        </div>
-      </div>
-      {/*<GrammarExamples onLoadExample={initializeParser} />*/}
-    </div>
+      <VisualizationSplit
+        leftPanel={<TableView parserHistory={snapshots} />}
+        rightPanel={<TreeView stack={stack} accepted={action === "ACCEPT"} />}
+      />
+    </ParserLayout>
   );
 }
 
